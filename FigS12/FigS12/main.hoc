@@ -1,0 +1,169 @@
+	print "INSTRUCTIONS:"
+	print "------------------------"
+	print "Change calcium pump time constant [taur_cad] to values between "
+	print " 20 and 140 ms in the pannel to run the simulation."
+	print "Type save(num) to save the parameters in a file name \"parameters[num].hoc\"."
+	print "Type load(num) to load model parameters from file \"parameters[num].hoc\" to the current model"
+	print ""
+	
+	
+	nrn_load_dll("../_mod/nrnmech.dll")
+	load_file("nrngui.hoc")
+	load_file("../_classlib/TString.hoc","D__TSTRINGHOC")
+	
+	//globals
+	objref voltage_graph,vbox
+	objref ic
+	objref mechs //A list of MechanismStandard objects with the mechanisms for this simulation.
+	yoffset = 0
+	create dend
+	access dend
+
+
+	/*
+	* iterator for looping over all mechanisms in a list of mechanisms
+	* basically will work with any list, except of using the second argument
+	* to get the name of the MechanismStandard.
+	* parameters: List mechs,MechanismStandard mech, TString mechname
+	*/	
+	iterator mechloop(){local i localobj mechs
+		mechs = $o1
+		for(i=0;i<mechs.count();i+=1) {
+			$o2 = mechs.object(i)
+			if(numarg() > 2) mechs.object(i).name($o3.s)
+			iterator_statement
+		}
+	}	
+	
+	/*
+	* 1. save all the parameters from mechanism standard to a file
+	*	assuming uniform distribution of ALL the mechanisms.
+	* 2. save the number of segments of every section
+	* 
+	*/	
+	proc save(){local i,j localobj ms,file,str,mechs,mechname,param_name
+		mechs = $o1 //List
+		str = new TString()
+		mechname = new TString()
+		param_name = new TString()
+		file = str.c.append($2,"parameters%d.hoc").fopen()
+		for mechloop (mechs,ms,mechname){
+			for(j=0;j<ms.count();j+=1){
+				ms.name(param_name.s,j)
+				file.printf("forall if(ismembrane(\"%s\")) %s = %f\n", mechname.s, param_name.s, ms.get(param_name.s))
+			}
+		}
+		forall file.printf("%s nseg = %d\n", secname(),nseg)
+		file.close()
+	}
+	/*
+	* Load the parameter file and set all the MechanismStandard
+	* parameters: filenum*
+	*/		
+	proc load(){local filenum localobj f, ms, mechs
+		filenum = $2
+		mechs = $o1
+		f = new TString("parameters")
+		xopen(f.append(filenum,"%d").append(".hoc").s)
+		for mechloop(mechs,ms) ms.in()
+	}
+	
+	
+	/*
+	* Compute the input resistance for the currently accessed section
+	*/		
+	func Rin(/*x*/){local x localobj imp
+		x = $1
+		imp = new Impedance(x)
+		imp.loc(x)
+		imp.compute(0)
+		return imp.input(x)
+	}
+	
+	/*
+	* plot the potential of all the point in a pointlist
+	*/	
+	obfunc graph1(){localobj g
+		newPlotV()
+		g = graphItem
+		g.erase_all()
+		g.addexpr("dend.v(0.5) + yoffset", 1, 1)
+		g.size(0,tstop,-100,200)
+		return g
+	}
+	
+	strdef section_name
+	proc iclamp(){local i,num localobj g,ms
+		g = voltage_graph
+		Rm = 1/g_pas
+		init()
+		for mechloop (mechs,ms) forall ms.out()
+		g.erase()
+		g.family(1)
+		{yoffset = 0 i = 0}
+		for (ic.amp = 0.375; ic.amp < 0.650 ; ic.amp += 0.025) {
+			g.color(i+=1)
+			yoffset+= 20 //global. used by the graph expression
+			run()
+		}
+	}
+				
+	proc sim(){
+		cvode.active(1)
+		using_cvode_ = 1
+		v_init = -86
+		dt = 0.025
+		steps_per_ms = 1.0/dt
+		tstop = 2000
+	
+	}
+	
+	proc biophys(){localobj cmd,mechname,ms
+		mechname = new TString()
+		cmd = new TString()
+		mechs = new List()
+		mechs.append(new MechanismStandard("bk"))
+		mechs.append(new MechanismStandard("cad"))
+		mechs.append(new MechanismStandard("Ca_HVA"))
+		mechs.append(new MechanismStandard("pas"))
+	
+		for mechloop(mechs,ms,mechname) {
+			ms.action("iclamp()")
+			cmd.c.append("forall insert ").append(mechname).exec()
+			ms.in()
+		}
+		
+		forall {
+			cm = 0.45
+			Rm = 14000/cm //such that tau is 14 ms
+			g_pas = 1/Rm
+			L = 100
+			diam =  99
+		}	
+	}
+	
+		
+	
+	
+	proc main(){local x  localobj ms		
+		dend ic = new IClamp(x)
+		{ic.del = 500 ic.dur = 1000 ic.amp = 1}
+		dend printf("dendritic Rin = %f.\n" , Rin(0.5))
+		dend printf("dendritic tau_m = %f.\n" , Rm*cm/1000)		
+		voltage_graph = graph1()
+		mechs.o(1).panel()
+	}
+
+	
+	sim()
+	biophys()
+	main()
+	load(mechs,0)
+	
+	
+
+	
+
+	
+
+      

@@ -1,0 +1,4 @@
+//moddir ../_mod
+load_file("nrngui.hoc")
+load_file("main.hoc")
+load_file("current_graph.ses")

@@ -1,0 +1,16 @@
+forall if(ismembrane("bk")) ctauz_bk = 1.000000
+forall if(ismembrane("bk")) zhalf_bk = 0.010000
+forall if(ismembrane("bk")) mtau_factor_bk = 0.200000
+forall if(ismembrane("bk")) htau_factor_bk = 0.020000
+forall if(ismembrane("bk")) gbar_bk = 300.000000
+forall if(ismembrane("cad")) depth_cad = 1.000000
+forall if(ismembrane("cad")) taur_cad = 60.000000
+forall if(ismembrane("cad")) cainf_cad = 0.000240
+forall if(ismembrane("Ca_HVA")) gCa_HVAbar_Ca_HVA = 0.000500
+forall if(ismembrane("Ca_HVA")) ma_Ca_HVA = 1.000000
+forall if(ismembrane("Ca_HVA")) mb_Ca_HVA = 1.000000
+forall if(ismembrane("Ca_HVA")) ha_Ca_HVA = 1.000000
+forall if(ismembrane("Ca_HVA")) hb_Ca_HVA = 1.000000
+forall if(ismembrane("pas")) g_pas = 0.000035
+forall if(ismembrane("pas")) e_pas = -86.000000
+dend nseg = 1
